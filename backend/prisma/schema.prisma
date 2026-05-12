@@ -1,0 +1,227 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CANDIDATE
+  RECRUITER
+  ADMIN
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWING
+  SHORTLISTED
+  INTERVIEW
+  OFFER
+  REJECTED
+  WITHDRAWN
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+}
+
+enum WorkMode {
+  REMOTE
+  HYBRID
+  ONSITE
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+model User {
+  id               String    @id @default(uuid())
+  name             String
+  email            String    @unique
+  passwordHash     String    @map("password_hash")
+  role             Role      @default(CANDIDATE)
+  status           UserStatus @default(ACTIVE)
+  emailVerified    Boolean   @default(false) @map("email_verified")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  candidateProfile CandidateProfile?
+  recruiter        Recruiter?
+  refreshTokens    RefreshToken[]
+  applications     Application[] @relation("CandidateApplications")
+  bookmarks        Bookmark[]
+  notifications    Notification[]
+  auditLogs        AuditLog[] @relation("AuditActor")
+  jobs             Job[] @relation("RecruiterJobs")
+
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  tokenHash String   @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  tokenHash String   @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  tokenHash  String   @map("token_hash")
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  revokedAt  DateTime? @map("revoked_at")
+  replacedBy String?  @map("replaced_by")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+model CandidateProfile {
+  userId           String   @id @map("user_id")
+  resumeUrl        String?  @map("resume_url")
+  skills           String[] @default([])
+  experience       Json?
+  education        Json?
+  certifications   String[] @default([])
+  preferredRole    String?  @map("preferred_role")
+  location         String?
+  github           String?
+  linkedin         String?
+  embedding        Json?
+  resumeParsedAt   DateTime? @map("resume_parsed_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Recruiter {
+  userId              String   @id @map("user_id")
+  companyName         String   @map("company_name")
+  companyDescription  String?  @map("company_description")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Job {
+  id             String         @id @default(uuid())
+  recruiterId    String         @map("recruiter_id")
+  title          String
+  description    String
+  skills         String[]       @default([])
+  experienceMin  Int?           @map("experience_min")
+  experienceMax  Int?           @map("experience_max")
+  salaryMin      Int?           @map("salary_min")
+  salaryMax      Int?           @map("salary_max")
+  salaryCurrency String         @default("USD") @map("salary_currency")
+  employmentType EmploymentType @default(FULL_TIME) @map("employment_type")
+  workMode       WorkMode       @default(ONSITE) @map("work_mode")
+  location       String?
+  companyName    String?        @map("company_name")
+  moderated      Boolean        @default(false)
+  published      Boolean        @default(false)
+  embedding      Json?
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  recruiterUser User @relation("RecruiterJobs", fields: [recruiterId], references: [id], onDelete: Cascade)
+  applications Application[]
+  bookmarks    Bookmark[]
+
+  @@index([recruiterId])
+  @@index([published, moderated])
+  @@index([location])
+}
+
+model Application {
+  id          String            @id @default(uuid())
+  candidateId String            @map("candidate_id")
+  jobId       String            @map("job_id")
+  status      ApplicationStatus @default(PENDING)
+  appliedAt   DateTime          @default(now()) @map("applied_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  interviewAt DateTime?         @map("interview_at")
+  notes       String?
+
+  candidate User @relation("CandidateApplications", fields: [candidateId], references: [id], onDelete: Cascade)
+  job       Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateId, jobId])
+  @@index([jobId])
+  @@index([candidateId])
+}
+
+model Bookmark {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  jobId     String   @map("job_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+  @@index([userId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?  @map("actor_id")
+  action     String
+  resource   String?
+  resourceId String?  @map("resource_id")
+  metadata   Json?
+  ip         String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([createdAt])
+}
