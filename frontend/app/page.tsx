@@ -9,7 +9,7 @@ export default function HomePage() {
         <p className="text-sm font-medium uppercase tracking-wide text-sky-400">Production-grade platform</p>
         <h1 className="text-4xl font-bold tracking-tight md:text-5xl">AI Job Matching for candidates and recruiters</h1>
         <p className="max-w-2xl text-lg text-slate-300">
-          Upload resumes, parse skills with NLP, search jobs in Elasticsearch, and match semantically with
+          Upload resumes, parse skills with NLP, search jobs with Postgres full-text search, and match semantically with
           embeddings and BullMQ-backed async pipelines.
         </p>
         <div className="flex flex-wrap gap-3">
@@ -24,7 +24,7 @@ export default function HomePage() {
       <div className="grid gap-4 md:grid-cols-3">
         {[
           { title: "JWT + RBAC", body: "Access and refresh rotation, Redis token blocklist, CSRF for mutations." },
-          { title: "Search & AI", body: "Elasticsearch full-text, FastAPI + sentence-transformers + FAISS-ready flows." },
+          { title: "Search & AI", body: "Postgres full-text search with tsvector/GIN, FastAPI + sentence-transformers + FAISS-ready flows." },
           { title: "Async & Ops", body: "BullMQ workers, Docker Compose, Prometheus metrics, GitHub Actions CI." },
         ].map((c) => (
           <Card key={c.title}>

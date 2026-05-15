@@ -19,7 +19,7 @@ import { registry } from "./lib/metrics.js";
 import { verifyAccessToken } from "./utils/jwt.js";
 import { isTokenBlacklisted } from "./lib/redis.js";
 import { prisma } from "./lib/prisma.js";
-import { ensureJobsIndex } from "./services/elasticsearchService.js";
+import { ensureSearchIndex } from "./services/searchService.js";
 
 export async function createApp() {
   const app = express();
@@ -76,7 +76,7 @@ export async function createApp() {
   app.use("/api/v1", v1);
   app.use(errorHandler);
 
-  await ensureJobsIndex();
+  await ensureSearchIndex();
 
   return app;
 }
