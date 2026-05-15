@@ -79,7 +79,7 @@ export default function CandidateDashboard() {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Search (Elasticsearch)</CardTitle>
+          <CardTitle>Search Jobs</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex gap-2">

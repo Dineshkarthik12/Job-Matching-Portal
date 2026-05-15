@@ -9,7 +9,7 @@ import { nanoid } from "nanoid";
 import * as resumeSvc from "../services/resumeService.js";
 import * as recSvc from "../services/recommendationService.js";
 import * as appSvc from "../services/applicationService.js";
-import { searchJobs, suggestAutocomplete } from "../services/elasticsearchService.js";
+import { searchJobs, suggestAutocomplete } from "../services/searchService.js";
 
 export const candidateRouter = Router();
 

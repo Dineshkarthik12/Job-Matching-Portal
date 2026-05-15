@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma.js";
 import { searchIndexQueue, defaultJobOpts } from "../queues/index.js";
-import { indexJobDocument, deleteJobDocument } from "./elasticsearchService.js";
 import type { EmploymentType, WorkMode } from "@prisma/client";
+import { logger } from "../utils/logger.js";
 
 export async function createJob(
   recruiterId: string,
@@ -41,11 +41,9 @@ export async function createJob(
       published: false,
     },
   });
-  await searchIndexQueue.add(
-    "index-job",
-    { jobId: job.id },
-    { ...defaultJobOpts, jobId: job.id }
-  );
+  // No need to enqueue a search-index job — the Postgres generated
+  // tsvector column updates automatically whenever a row is written.
+  logger.info("Job created (search vector auto-updated by Postgres)", { jobId: job.id });
   return job;
 }
 
@@ -71,7 +69,6 @@ export async function updateJob(
   const job = await prisma.job.findFirst({ where: { id: jobId, recruiterId } });
   if (!job) return null;
   const updated = await prisma.job.update({ where: { id: jobId }, data: patch });
-  await searchIndexQueue.add("index-job", { jobId }, { ...defaultJobOpts, jobId });
   return updated;
 }
 
@@ -79,7 +76,6 @@ export async function deleteJob(jobId: string, recruiterId: string) {
   const job = await prisma.job.findFirst({ where: { id: jobId, recruiterId } });
   if (!job) return false;
   await prisma.job.delete({ where: { id: jobId } });
-  await searchIndexQueue.add("delete-job", { jobId }, defaultJobOpts);
   return true;
 }
 
@@ -104,28 +100,3 @@ export async function listJobsForRecruiter(recruiterId: string, page: number, li
   return { items, total, page, limit };
 }
 
-export async function syncJobToElasticsearch(jobId: string) {
-  const job = await prisma.job.findUnique({ where: { id: jobId } });
-  if (!job) return;
-  if (!job.moderated || !job.published) {
-    await deleteJobDocument(jobId);
-    return;
-  }
-  await indexJobDocument({
-    id: job.id,
-    title: job.title,
-    description: job.description,
-    skills: job.skills,
-    location: job.location,
-    workMode: job.workMode,
-    employmentType: job.employmentType,
-    experienceMin: job.experienceMin,
-    experienceMax: job.experienceMax,
-    salaryMin: job.salaryMin,
-    salaryMax: job.salaryMax,
-    companyName: job.companyName,
-    published: job.published,
-    moderated: job.moderated,
-    createdAt: job.createdAt,
-  });
-}

@@ -2,8 +2,6 @@ import { Worker } from "bullmq";
 import { queueConnection, QUEUE_NAMES } from "../queues/index.js";
 import { logger } from "../utils/logger.js";
 import { processResumeParseJob } from "../services/resumeService.js";
-import { syncJobToElasticsearch } from "../services/jobService.js";
-import { deleteJobDocument } from "../services/elasticsearchService.js";
 import { prisma } from "../lib/prisma.js";
 
 export function startWorkers() {
@@ -16,17 +14,16 @@ export function startWorkers() {
     { connection: queueConnection }
   );
 
+  // Search indexing is handled by Postgres generated tsvector column.
+  // This worker is kept as a no-op to drain any old jobs still in the queue.
   new Worker(
     QUEUE_NAMES.SEARCH_INDEX,
     async (job) => {
-      if (job.name === "delete-job") {
-        await deleteJobDocument((job.data as { jobId: string }).jobId);
-        return;
-      }
-      await syncJobToElasticsearch((job.data as { jobId: string }).jobId);
+      logger.info("Search index job (no-op, Postgres handles search)", { name: job.name });
     },
     { connection: queueConnection }
   );
+
 
   new Worker(
     QUEUE_NAMES.EMAIL,

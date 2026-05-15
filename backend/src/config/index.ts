@@ -12,7 +12,6 @@ const envSchema = {
   JWT_REFRESH_EXPIRES_DAYS: parseInt(process.env.JWT_REFRESH_EXPIRES_DAYS ?? "7", 10),
   FRONTEND_URL: process.env.FRONTEND_URL ?? "http://localhost:3000",
   AI_SERVICE_URL: process.env.AI_SERVICE_URL ?? "http://localhost:8000",
-  ELASTICSEARCH_URL: process.env.ELASTICSEARCH_URL ?? "http://localhost:9200",
   AWS_REGION: process.env.AWS_REGION ?? "us-east-1",
   AWS_S3_BUCKET: process.env.AWS_S3_BUCKET ?? "",
   AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID ?? "",
